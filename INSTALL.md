@@ -16,6 +16,14 @@
      - Leave empty to capture all domains
      - Enter specific domains: `example.com, api.example.com`
      - Use wildcards: `*.example.com`
+   - **(New)** Set HTTP Method filter (optional):
+     - Select "All Methods" to capture all HTTP methods
+     - Select specific method (GET, POST, PUT, etc.) to capture only that method
+   - **(New)** Set Path Regex filter (optional):
+     - Use regex patterns to filter URL paths
+     - Example: `/api/*` to capture only API endpoints
+     - Example: `/users/.*` to capture user-related paths
+     - Use negative patterns to ignore static files: `^(?!.*\\.(js|css|png)).*$`
    - Toggle the switch to enable monitoring
    - Click "Save Settings"
 

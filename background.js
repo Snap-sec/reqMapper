@@ -2,12 +2,26 @@
 let isMonitoringEnabled = false;
 let webhookUrl = '';
 let domainScope = [];
+let methodFilter = '';
+let pathRegex = '';
+let pathRegexPattern = null;
 
 // Initialize settings from storage
-chrome.storage.sync.get(['webhookUrl', 'domainScope', 'isEnabled'], function(result) {
+chrome.storage.sync.get(['webhookUrl', 'domainScope', 'methodFilter', 'pathRegex', 'isEnabled'], function(result) {
   webhookUrl = result.webhookUrl || '';
   domainScope = result.domainScope ? result.domainScope.split(',').map(d => d.trim()) : [];
+  methodFilter = result.methodFilter || '';
+  pathRegex = result.pathRegex || '';
   isMonitoringEnabled = result.isEnabled || false;
+  
+  // Compile regex pattern if provided
+  if (pathRegex) {
+    try {
+      pathRegexPattern = new RegExp(pathRegex);
+    } catch (e) {
+      console.error('Invalid regex pattern:', pathRegex);
+    }
+  }
   
   updateMonitoringState();
 });
@@ -18,7 +32,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     webhookUrl = request.settings.webhookUrl || '';
     domainScope = request.settings.domainScope ? 
       request.settings.domainScope.split(',').map(d => d.trim()) : [];
+    methodFilter = request.settings.methodFilter || '';
+    pathRegex = request.settings.pathRegex || '';
     isMonitoringEnabled = request.settings.isEnabled || false;
+    
+    // Compile regex pattern if provided
+    if (pathRegex) {
+      try {
+        pathRegexPattern = new RegExp(pathRegex);
+      } catch (e) {
+        console.error('Invalid regex pattern:', pathRegex);
+        pathRegexPattern = null;
+      }
+    } else {
+      pathRegexPattern = null;
+    }
     
     updateMonitoringState();
     sendResponse({success: true});
@@ -62,6 +90,21 @@ function handleRequest(details) {
   
   // Check if request is in scope
   if (!isRequestInScope(details.url)) return;
+  
+  // Check method filter
+  if (methodFilter && details.method !== methodFilter) return;
+  
+  // Check path regex filter
+  if (pathRegexPattern) {
+    try {
+      const url = new URL(details.url);
+      const path = url.pathname;
+      if (!pathRegexPattern.test(path)) return;
+    } catch (e) {
+      console.error('Error parsing URL:', details.url);
+      return;
+    }
+  }
   
   const requestId = details.requestId;
   requestData.set(requestId, {

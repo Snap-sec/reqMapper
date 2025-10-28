@@ -2,14 +2,18 @@
 document.addEventListener('DOMContentLoaded', function() {
   const webhookUrlInput = document.getElementById('webhookUrl');
   const domainScopeInput = document.getElementById('domainScope');
+  const methodFilterInput = document.getElementById('methodFilter');
+  const pathRegexInput = document.getElementById('pathRegex');
   const toggle = document.getElementById('toggle');
   const status = document.getElementById('status');
   const saveBtn = document.getElementById('saveBtn');
   
   // Load saved settings
-  chrome.storage.sync.get(['webhookUrl', 'domainScope', 'isEnabled'], function(result) {
+  chrome.storage.sync.get(['webhookUrl', 'domainScope', 'methodFilter', 'pathRegex', 'isEnabled'], function(result) {
     webhookUrlInput.value = result.webhookUrl || '';
     domainScopeInput.value = result.domainScope || '';
+    methodFilterInput.value = result.methodFilter || '';
+    pathRegexInput.value = result.pathRegex || '';
     
     if (result.isEnabled) {
       toggle.classList.add('active');
@@ -40,6 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
   saveBtn.addEventListener('click', function() {
     const webhookUrl = webhookUrlInput.value.trim();
     const domainScope = domainScopeInput.value.trim();
+    const methodFilter = methodFilterInput.value;
+    const pathRegex = pathRegexInput.value.trim();
     const isEnabled = toggle.classList.contains('active');
     
     // Validate webhook URL
@@ -48,10 +54,22 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
+    // Validate regex if provided
+    if (pathRegex) {
+      try {
+        new RegExp(pathRegex);
+      } catch (e) {
+        alert('Invalid regex pattern. Please enter a valid regex.');
+        return;
+      }
+    }
+    
     // Save to chrome storage
     chrome.storage.sync.set({
       webhookUrl: webhookUrl,
       domainScope: domainScope,
+      methodFilter: methodFilter,
+      pathRegex: pathRegex,
       isEnabled: isEnabled
     }, function() {
       // Send message to background script to update monitoring state
@@ -60,6 +78,8 @@ document.addEventListener('DOMContentLoaded', function() {
         settings: {
           webhookUrl: webhookUrl,
           domainScope: domainScope,
+          methodFilter: methodFilter,
+          pathRegex: pathRegex,
           isEnabled: isEnabled
         }
       });

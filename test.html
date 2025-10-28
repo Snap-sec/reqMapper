@@ -97,9 +97,19 @@
                 <li>Make sure ReqMapper extension is installed and enabled</li>
                 <li>Configure your webhook URL in the extension popup</li>
                 <li>Set domain scope if needed (leave empty for all domains)</li>
+                <li><strong>Optional:</strong> Set method filter to capture only specific HTTP methods</li>
+                <li><strong>Optional:</strong> Set path regex to filter by URL path (e.g., `/api/.*` for API calls)</li>
                 <li>Click the buttons above to generate requests</li>
                 <li>Check your webhook endpoint for captured requests</li>
             </ol>
+            
+            <h3>Filter Examples:</h3>
+            <ul>
+                <li><strong>Capture only API calls:</strong> Path Regex: <code>/api/.*</code></li>
+                <li><strong>Capture only POST requests:</strong> Method: <code>POST</code></li>
+                <li><strong>Ignore static files:</strong> Path Regex: <code>^(?!.*\.(js|css|png|jpg|gif)).*$</code></li>
+                <li><strong>Capture specific API routes:</strong> Path Regex: <code>^/api/(users|posts)/</code></li>
+            </ul>
         </div>
     </div>
 

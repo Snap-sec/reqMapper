@@ -9,6 +9,8 @@ A Chrome extension that monitors HTTP requests and sends them to a webhook in Po
 - 🔄 **Real-time Monitoring**: Capture requests as they happen in your browser
 - 📋 **Postman Format**: Convert requests to Postman collection format
 - 🎨 **Modern UI**: Beautiful, responsive popup interface
+- 🔍 **Method Filtering**: Filter requests by HTTP method (GET, POST, PUT, etc.)
+- 🎯 **Path Regex Filtering**: Filter requests by URL path using regex patterns (e.g., `/api/*`)
 
 ## Installation
 
@@ -25,8 +27,29 @@ A Chrome extension that monitors HTTP requests and sends them to a webhook in Po
 3. Specify domain scope (comma-separated, e.g., `example.com, api.example.com`)
    - Leave empty to capture all domains
    - Use `*.example.com` for wildcard matching
-4. Toggle the switch to enable/disable monitoring
-5. Click "Save Settings"
+4. **(Optional)** Select HTTP method filter to capture only specific methods (e.g., only POST requests)
+5. **(Optional)** Specify path regex filter to capture only matching paths:
+   - `/api/*` - Capture all API endpoints
+   - `/users/.*` - Capture all user-related paths
+   - `^/api/(users|posts)/` - Capture specific API routes
+6. Toggle the switch to enable/disable monitoring
+7. Click "Save Settings"
+
+## Filtering Examples
+
+### Capture only API POST requests:
+- Method Filter: `POST`
+- Path Regex: `/api/.*`
+
+### Capture only GET requests to user endpoints:
+- Method Filter: `GET`
+- Path Regex: `/users/.*`
+
+### Ignore static files (JavaScript, CSS, images):
+- Path Regex: `^(?!.*\\.(js|css|png|jpg|gif|ico)).*$`
+
+Or capture only API calls:
+- Path Regex: `^/api/.*`
 
 ## Webhook Payload Format
 

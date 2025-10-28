@@ -38,7 +38,7 @@
       font-size: 14px;
     }
     
-    input[type="text"], input[type="url"] {
+    input[type="text"], input[type="url"], select {
       width: 100%;
       padding: 12px;
       border: none;
@@ -52,6 +52,25 @@
     
     input[type="text"]::placeholder, input[type="url"]::placeholder {
       color: rgba(255, 255, 255, 0.7);
+    }
+    
+    select option {
+      background: #667eea;
+      color: white;
+    }
+    
+    .filters-section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .filters-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.9;
     }
     
     .toggle-container {
@@ -149,6 +168,28 @@
     <div class="form-group">
       <label for="domainScope">Domain Scope (comma-separated):</label>
       <input type="text" id="domainScope" placeholder="example.com, api.example.com">
+    </div>
+    
+    <div class="filters-section">
+      <h3>Request Filters</h3>
+      <div class="form-group">
+        <label for="methodFilter">HTTP Method Filter:</label>
+        <select id="methodFilter">
+          <option value="">All Methods</option>
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="PATCH">PATCH</option>
+          <option value="DELETE">DELETE</option>
+          <option value="OPTIONS">OPTIONS</option>
+          <option value="HEAD">HEAD</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="pathRegex">Path Regex Filter:</label>
+        <input type="text" id="pathRegex" placeholder="/api/* or /users/.*">
+      </div>
     </div>
     
     <div class="toggle-container">
