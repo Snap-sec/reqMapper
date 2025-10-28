@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReqMapper Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .api-demo {
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 ReqMapper Test Page</h1>
+        
+        <div class="test-section">
+            <h2>Basic HTTP Requests</h2>
+            <p>Click these buttons to generate different types of HTTP requests:</p>
+            <button onclick="testGET()">Test GET Request</button>
+            <button onclick="testPOST()">Test POST Request</button>
+            <button onclick="testPUT()">Test PUT Request</button>
+            <button onclick="testDELETE()">Test DELETE Request</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>API Testing</h2>
+            <div class="api-demo">
+                <input type="text" id="apiUrl" placeholder="Enter API URL" value="https://jsonplaceholder.typicode.com/posts">
+                <button onclick="testAPI()">Test API Call</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Form Submission</h2>
+            <form id="testForm">
+                <input type="text" name="name" placeholder="Name" required>
+                <input type="email" name="email" placeholder="Email" required>
+                <button type="submit">Submit Form</button>
+            </form>
+        </div>
+        
+        <div class="test-section">
+            <h2>External Requests</h2>
+            <button onclick="testExternal()">Test External API (GitHub)</button>
+            <button onclick="testWeather()">Test Weather API</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Instructions</h2>
+            <ol>
+                <li>Make sure ReqMapper extension is installed and enabled</li>
+                <li>Configure your webhook URL in the extension popup</li>
+                <li>Set domain scope if needed (leave empty for all domains)</li>
+                <li>Click the buttons above to generate requests</li>
+                <li>Check your webhook endpoint for captured requests</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function testGET() {
+            fetch('https://jsonplaceholder.typicode.com/posts/1')
+                .then(response => response.json())
+                .then(data => console.log('GET Response:', data))
+                .catch(error => console.error('Error:', error));
+        }
+        
+        function testPOST() {
+            fetch('https://jsonplaceholder.typicode.com/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: 'Test Post',
+                    body: 'This is a test post from ReqMapper',
+                    userId: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('POST Response:', data))
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function testPUT() {
+            fetch('https://jsonplaceholder.typicode.com/posts/1', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: 1,
+                    title: 'Updated Post',
+                    body: 'This post has been updated',
+                    userId: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('PUT Response:', data))
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function testDELETE() {
+            fetch('https://jsonplaceholder.typicode.com/posts/1', {
+                method: 'DELETE'
+            })
+            .then(response => console.log('DELETE Response:', response.status))
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function testAPI() {
+            const url = document.getElementById('apiUrl').value;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => console.log('API Response:', data))
+                .catch(error => console.error('Error:', error));
+        }
+        
+        function testExternal() {
+            fetch('https://api.github.com/users/octocat')
+                .then(response => response.json())
+                .then(data => console.log('GitHub Response:', data))
+                .catch(error => console.error('Error:', error));
+        }
+        
+        function testWeather() {
+            // Using a free weather API
+            fetch('https://api.openweathermap.org/data/2.5/weather?q=London&appid=demo')
+                .then(response => response.json())
+                .then(data => console.log('Weather Response:', data))
+                .catch(error => console.error('Error:', error));
+        }
+        
+        // Form submission handler
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            fetch('https://jsonplaceholder.typicode.com/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Form Response:', data);
+                alert('Form submitted successfully! Check console and webhook.');
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>

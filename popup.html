@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin: 0;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+    
+    h1 {
+      text-align: center;
+      margin: 0 0 20px 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    input[type="text"], input[type="url"] {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 14px;
+      box-sizing: border-box;
+      backdrop-filter: blur(5px);
+    }
+    
+    input[type="text"]::placeholder, input[type="url"]::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle.active {
+      background: #4CAF50;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .toggle.active .toggle-slider {
+      transform: translateX(30px);
+    }
+    
+    .status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .status.active {
+      background: rgba(76, 175, 80, 0.3);
+      border: 1px solid rgba(76, 175, 80, 0.5);
+    }
+    
+    .status.inactive {
+      background: rgba(244, 67, 54, 0.3);
+      border: 1px solid rgba(244, 67, 54, 0.5);
+    }
+    
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+    
+    .save-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .save-btn:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 ReqMapper</h1>
+    
+    <div class="form-group">
+      <label for="webhookUrl">Webhook URL:</label>
+      <input type="url" id="webhookUrl" placeholder="https://your-webhook-url.com/endpoint">
+    </div>
+    
+    <div class="form-group">
+      <label for="domainScope">Domain Scope (comma-separated):</label>
+      <input type="text" id="domainScope" placeholder="example.com, api.example.com">
+    </div>
+    
+    <div class="toggle-container">
+      <span>Enable Monitoring</span>
+      <div class="toggle" id="toggle">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+    
+    <div class="status inactive" id="status">
+      Monitoring: OFF
+    </div>
+    
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
