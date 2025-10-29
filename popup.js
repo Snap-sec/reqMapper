@@ -6,7 +6,23 @@ document.addEventListener('DOMContentLoaded', function() {
   const pathRegexInput = document.getElementById('pathRegex');
   const toggle = document.getElementById('toggle');
   const status = document.getElementById('status');
-  const saveBtn = document.getElementById('saveBtn');
+  const toggleLabel = document.getElementById('toggleLabel');
+  
+  // Debounce timer for input fields
+  let saveTimeout = null;
+  
+  // Update status labels
+  function updateStatusLabels(isActive) {
+    if (isActive) {
+      status.textContent = 'Monitoring: ON';
+      status.className = 'status active';
+      toggleLabel.textContent = 'Monitoring: ON';
+    } else {
+      status.textContent = 'Monitoring: OFF';
+      status.className = 'status inactive';
+      toggleLabel.textContent = 'Monitoring: OFF';
+    }
+  }
   
   // Load saved settings
   chrome.storage.sync.get(['webhookUrl', 'domainScope', 'methodFilter', 'pathRegex', 'isEnabled'], function(result) {
@@ -17,40 +33,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (result.isEnabled) {
       toggle.classList.add('active');
-      status.textContent = 'Monitoring: ON';
-      status.className = 'status active';
+      updateStatusLabels(true);
     } else {
       toggle.classList.remove('active');
-      status.textContent = 'Monitoring: OFF';
-      status.className = 'status inactive';
+      updateStatusLabels(false);
     }
   });
   
-  // Toggle functionality
-  toggle.addEventListener('click', function() {
-    toggle.classList.toggle('active');
-    const isActive = toggle.classList.contains('active');
-    
-    if (isActive) {
-      status.textContent = 'Monitoring: ON';
-      status.className = 'status active';
-    } else {
-      status.textContent = 'Monitoring: OFF';
-      status.className = 'status inactive';
+  // Helper function to validate URL
+  function isValidUrl(string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
     }
-  });
+  }
   
-  // Save settings
-  saveBtn.addEventListener('click', function() {
+  // Save settings function
+  function saveSettings(showStatusUpdate = false) {
     const webhookUrl = webhookUrlInput.value.trim();
     const domainScope = domainScopeInput.value.trim();
     const methodFilter = methodFilterInput.value;
     const pathRegex = pathRegexInput.value.trim();
     const isEnabled = toggle.classList.contains('active');
     
-    // Validate webhook URL
+    // Validate webhook URL only if monitoring is enabled
     if (isEnabled && webhookUrl && !isValidUrl(webhookUrl)) {
-      alert('Please enter a valid webhook URL');
+      // Don't show alert on auto-save, just return
+      if (showStatusUpdate) {
+        alert('Please enter a valid webhook URL');
+      }
       return;
     }
     
@@ -59,7 +72,9 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         new RegExp(pathRegex);
       } catch (e) {
-        alert('Invalid regex pattern. Please enter a valid regex.');
+        if (showStatusUpdate) {
+          alert('Invalid regex pattern. Please enter a valid regex.');
+        }
         return;
       }
     }
@@ -84,25 +99,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       
-      // Show success feedback
-      const originalText = saveBtn.textContent;
-      saveBtn.textContent = '✓ Saved!';
-      saveBtn.classList.add('saved');
-      
-      setTimeout(() => {
-        saveBtn.textContent = originalText;
-        saveBtn.classList.remove('saved');
-      }, 1500);
+      // Show brief status update
+      if (showStatusUpdate) {
+        const originalStatus = status.textContent;
+        status.textContent = isEnabled ? '✓ Monitoring Enabled' : '✓ Monitoring Disabled';
+        status.style.opacity = '0.8';
+        setTimeout(() => {
+          status.textContent = originalStatus;
+          status.style.opacity = '1';
+        }, 2000);
+      }
     });
+  }
+  
+  // Toggle functionality with auto-save
+  toggle.addEventListener('click', function() {
+    toggle.classList.toggle('active');
+    const isActive = toggle.classList.contains('active');
+    
+    // Update both status labels
+    updateStatusLabels(isActive);
+    
+    // Auto-save immediately when toggle changes
+    saveSettings(true);
   });
   
-  // Helper function to validate URL
-  function isValidUrl(string) {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  // Auto-save on input changes (with debouncing)
+  function setupAutoSave(inputElement) {
+    inputElement.addEventListener('input', function() {
+      // Clear existing timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      
+      // Set new timeout to save after user stops typing (500ms delay)
+      saveTimeout = setTimeout(function() {
+        saveSettings();
+      }, 500);
+    });
+    
+    // Also save on blur (when user leaves the field)
+    inputElement.addEventListener('blur', function() {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      saveSettings();
+    });
   }
+  
+  // Setup auto-save for all input fields
+  setupAutoSave(webhookUrlInput);
+  setupAutoSave(domainScopeInput);
+  setupAutoSave(pathRegexInput);
+  
+  // Auto-save on select change (immediate, no debounce needed)
+  methodFilterInput.addEventListener('change', function() {
+    saveSettings();
+  });
 });

@@ -181,9 +181,136 @@ setInterval(() => {
   cleanupOldSignatures();
 }, 30000); // Run every 30 seconds
 
+// Check if request should be ignored (webhook URL or extension-originated)
+function shouldIgnoreRequest(details) {
+  // Ignore requests to our own webhook URL (prevent recursive loops)
+  if (webhookUrl && details.url) {
+    // Normalize URLs for comparison (remove trailing slashes, etc.)
+    const normalizedWebhook = webhookUrl.trim().replace(/\/$/, '');
+    const normalizedRequest = details.url.trim().replace(/\/$/, '');
+    
+    // Exact match check
+    if (normalizedRequest === normalizedWebhook) {
+      return true;
+    }
+    
+    // Check if request URL starts with webhook URL (catches variations with IDs appended)
+    // e.g., webhook: https://example.com/api/webhook/123
+    // request: https://example.com/api/webhook/123/456
+    if (normalizedRequest.startsWith(normalizedWebhook + '/')) {
+      return true;
+    }
+    
+    // More sophisticated check using URL objects
+    try {
+      const webhookUrlObj = new URL(normalizedWebhook);
+      const requestUrlObj = new URL(normalizedRequest);
+      
+      // Same origin check (protocol + hostname + port)
+      if (webhookUrlObj.origin === requestUrlObj.origin) {
+        const webhookPath = webhookUrlObj.pathname;
+        const requestPath = requestUrlObj.pathname;
+        
+        // Exact path match
+        if (requestPath === webhookPath) {
+          return true;
+        }
+        
+        // If webhook path is a prefix of request path
+        // e.g., webhook: /api/webhook, request: /api/webhook/12345
+        if (webhookPath.length > 0 && requestPath.startsWith(webhookPath + '/')) {
+          return true;
+        }
+        
+        // If request path is a prefix of webhook path
+        // e.g., webhook: /api/webhook/12345, request: /api/webhook
+        if (requestPath.length > 0 && webhookPath.startsWith(requestPath + '/')) {
+          return true;
+        }
+        
+        // Extract base pattern from webhook URL
+        // For webhook: /api/v1/projects/123/browser-requests/456
+        // Find the "browser-requests" segment and use everything up to it
+        const webhookPathParts = webhookPath.split('/').filter(p => p);
+        let basePathEndIndex = webhookPathParts.length;
+        
+        // Find if "browser-requests" exists in webhook path
+        const browserRequestsIndex = webhookPathParts.findIndex(part => 
+          part === 'browser-requests' || part.startsWith('browser-requests')
+        );
+        
+        if (browserRequestsIndex >= 0) {
+          // Base path is everything up to and including "browser-requests"
+          basePathEndIndex = browserRequestsIndex + 1;
+        } else {
+          // If no "browser-requests" found, use all but the last segment (assuming last is an ID)
+          basePathEndIndex = Math.max(1, webhookPathParts.length - 1);
+        }
+        
+        const basePathParts = webhookPathParts.slice(0, basePathEndIndex);
+        const basePath = '/' + basePathParts.join('/');
+        
+        // Check if request path starts with base path
+        if (requestPath.startsWith(basePath)) {
+          return true;
+        }
+        
+        // Also check if paths share significant common segments (catch variations)
+        const requestPathParts = requestPath.split('/').filter(p => p);
+        if (requestPathParts.length >= basePathParts.length) {
+          let allMatch = true;
+          for (let i = 0; i < basePathParts.length; i++) {
+            if (requestPathParts[i] !== basePathParts[i]) {
+              allMatch = false;
+              break;
+            }
+          }
+          if (allMatch) {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      // URL parsing error, use simple string comparison as fallback
+      if (normalizedRequest.includes(normalizedWebhook) || 
+          normalizedWebhook.includes(normalizedRequest)) {
+        return true;
+      }
+    }
+  }
+  
+  // Ignore requests originating from the extension itself
+  // tabId -1 typically indicates extension-originated requests
+  if (details.tabId === -1) {
+    return true;
+  }
+  
+  // Also ignore if the request has extension origin in initiator
+  // This is a safety check for extension-originated requests
+  if (details.initiator) {
+    try {
+      const initiatorUrl = new URL(details.initiator);
+      if (initiatorUrl.protocol === 'chrome-extension:' || 
+          initiatorUrl.protocol === 'moz-extension:' ||
+          initiatorUrl.hostname === chrome.runtime.id) {
+        return true;
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+  }
+  
+  return false;
+}
+
 // Handle request initiation
 function handleRequest(details) {
   if (!isMonitoringEnabled || !webhookUrl) return;
+  
+  // IMPORTANT: Ignore requests from extension itself and to webhook URL
+  if (shouldIgnoreRequest(details)) {
+    return;
+  }
   
   // Check if request is in scope
   if (!isRequestInScope(details.url)) return;
@@ -284,6 +411,16 @@ async function handleResponse(details) {
   }
   
   const request = requestData.get(requestId);
+  
+  // Safety check: Ignore webhook requests and extension-originated requests
+  // (This is a fallback in case they weren't caught in handleRequest)
+  if (shouldIgnoreRequest({ url: request.url, tabId: request.tabId })) {
+    console.log('Ignoring webhook/extension request in response handler:', request.url);
+    requestData.delete(requestId);
+    requestStartTimes.delete(requestId);
+    return;
+  }
+  
   request.statusCode = details.statusCode;
   request.responseHeaders = details.responseHeaders;
   
