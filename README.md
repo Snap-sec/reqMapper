@@ -8,7 +8,7 @@ A Chrome extension that monitors HTTP requests and sends them to a webhook in Po
 - 🎯 **Domain Scoping**: Filter requests by specific domains or use wildcards
 - 🔄 **Real-time Monitoring**: Capture requests as they happen in your browser
 - 📋 **Postman Format**: Convert requests to Postman collection format
-- 🎨 **Modern UI**: Beautiful, responsive popup interface
+- 🎨 **Professional UI**: Clean, modern interface matching enterprise dashboard standards
 - 🔍 **Method Filtering**: Filter requests by HTTP method (GET, POST, PUT, etc.)
 - 🎯 **Path Regex Filtering**: Filter requests by URL path using regex patterns (e.g., `/api/*`)
 

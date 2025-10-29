@@ -5,6 +5,7 @@ let domainScope = [];
 let methodFilter = '';
 let pathRegex = '';
 let pathRegexPattern = null;
+let listenersRegistered = false;
 
 // Initialize settings from storage
 chrome.storage.sync.get(['webhookUrl', 'domainScope', 'methodFilter', 'pathRegex', 'isEnabled'], function(result) {
@@ -51,38 +52,76 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     updateMonitoringState();
     sendResponse({success: true});
   }
+  return true; // Keep message channel open for async response
 });
 
 // Update monitoring state based on current settings
 function updateMonitoringState() {
-  if (isMonitoringEnabled && webhookUrl) {
-    // Add listeners for HTTP requests
-    chrome.webRequest.onBeforeRequest.addListener(
-      handleRequest,
-      {urls: ["<all_urls>"]},
-      ["requestBody"]
-    );
-    
-    chrome.webRequest.onBeforeSendHeaders.addListener(
-      handleRequestHeaders,
-      {urls: ["<all_urls>"]},
-      ["requestHeaders"]
-    );
-    
-    chrome.webRequest.onCompleted.addListener(
-      handleResponse,
-      {urls: ["<all_urls>"]}
-    );
-  } else {
-    // Remove listeners
+  // Remove existing listeners first to avoid duplicates
+  try {
     chrome.webRequest.onBeforeRequest.removeListener(handleRequest);
     chrome.webRequest.onBeforeSendHeaders.removeListener(handleRequestHeaders);
     chrome.webRequest.onCompleted.removeListener(handleResponse);
+  } catch (e) {
+    // Listeners might not exist, which is fine
+  }
+  
+  listenersRegistered = false;
+  
+  if (isMonitoringEnabled && webhookUrl) {
+    // Add listeners for HTTP requests only if not already registered
+    try {
+      chrome.webRequest.onBeforeRequest.addListener(
+        handleRequest,
+        {urls: ["<all_urls>"]},
+        ["requestBody"]
+      );
+      
+      chrome.webRequest.onBeforeSendHeaders.addListener(
+        handleRequestHeaders,
+        {urls: ["<all_urls>"]},
+        ["requestHeaders"]
+      );
+      
+      chrome.webRequest.onCompleted.addListener(
+        handleResponse,
+        {urls: ["<all_urls>"]}
+      );
+      
+      listenersRegistered = true;
+    } catch (e) {
+      console.error('Error registering listeners:', e);
+    }
+  }
+  
+  // Clear request data when monitoring is disabled
+  if (!isMonitoringEnabled) {
+    requestData.clear();
+    sentRequests.clear();
+    requestStartTimes.clear();
   }
 }
 
 // Store request data for processing
 const requestData = new Map();
+// Track requests that have already been sent to prevent duplicates
+const sentRequests = new Set();
+// Track request start times to clean up stale requests
+const requestStartTimes = new Map();
+
+// Clean up stale requests every 30 seconds
+setInterval(() => {
+  const now = Date.now();
+  const maxAge = 60000; // 1 minute
+  
+  // Clean up old request data
+  for (const [requestId, startTime] of requestStartTimes.entries()) {
+    if (now - startTime > maxAge) {
+      requestData.delete(requestId);
+      requestStartTimes.delete(requestId);
+    }
+  }
+}, 30000); // Run every 30 seconds
 
 // Handle request initiation
 function handleRequest(details) {
@@ -107,13 +146,18 @@ function handleRequest(details) {
   }
   
   const requestId = details.requestId;
+  const timestamp = Date.now();
+  
   requestData.set(requestId, {
     method: details.method,
     url: details.url,
     requestBody: details.requestBody,
-    timestamp: Date.now(),
+    timestamp: timestamp,
     tabId: details.tabId
   });
+  
+  // Track when this request started
+  requestStartTimes.set(requestId, timestamp);
 }
 
 // Handle request headers
@@ -131,17 +175,41 @@ function handleResponse(details) {
   if (!isMonitoringEnabled || !webhookUrl) return;
   
   const requestId = details.requestId;
+  
+  // Check if we've already processed this requestId
+  if (sentRequests.has(requestId)) {
+    // Already processed this request, ignore
+    return;
+  }
+  
   if (requestData.has(requestId)) {
     const request = requestData.get(requestId);
     request.statusCode = details.statusCode;
     request.responseHeaders = details.responseHeaders;
     
+    // Mark this requestId as being processed BEFORE sending to prevent duplicates
+    sentRequests.add(requestId);
+    
     // Convert to Postman format and send to webhook
     const postmanRequest = convertToPostmanFormat(request);
-    sendToWebhook(postmanRequest);
-    
-    // Clean up
-    requestData.delete(requestId);
+    sendToWebhook(postmanRequest).finally(() => {
+      // Clean up request data after sending
+      requestData.delete(requestId);
+      requestStartTimes.delete(requestId);
+      
+      // Clean up sentRequests after a delay to prevent memory buildup
+      // Keep track for 2 minutes to handle any edge cases
+      setTimeout(() => {
+        sentRequests.delete(requestId);
+      }, 120000); // 2 minutes
+    });
+  } else {
+    // Request data not found, but mark as processed to prevent duplicate handling
+    sentRequests.add(requestId);
+    requestStartTimes.delete(requestId);
+    setTimeout(() => {
+      sentRequests.delete(requestId);
+    }, 120000);
   }
 }
 
@@ -253,7 +321,9 @@ async function sendToWebhook(postmanRequest) {
     if (!response.ok) {
       console.error('Failed to send request to webhook:', response.status, response.statusText);
     }
+    return response;
   } catch (error) {
     console.error('Error sending request to webhook:', error);
+    throw error; // Re-throw to ensure promise chain works
   }
 }

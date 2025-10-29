@@ -86,12 +86,12 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Show success feedback
       const originalText = saveBtn.textContent;
-      saveBtn.textContent = 'Saved!';
-      saveBtn.style.background = 'rgba(76, 175, 80, 0.3)';
+      saveBtn.textContent = '✓ Saved!';
+      saveBtn.classList.add('saved');
       
       setTimeout(() => {
         saveBtn.textContent = originalText;
-        saveBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+        saveBtn.classList.remove('saved');
       }, 1500);
     });
   });
