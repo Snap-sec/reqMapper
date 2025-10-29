@@ -183,6 +183,35 @@ setInterval(() => {
 
 // Check if request should be ignored (webhook URL or extension-originated)
 function shouldIgnoreRequest(details) {
+  // Ignore requests to browser-requests endpoints (prevent recursive loops)
+  // Pattern: /apisec/api/v1/projects/{project-id}/browser-requests/{org-id}
+  if (details.url) {
+    try {
+      const requestUrlObj = new URL(details.url);
+      const requestPath = requestUrlObj.pathname;
+      
+      // Check for the specific browser-requests pattern
+      // Matches: /apisec/api/v1/projects/{any-id}/browser-requests/{any-id}
+      const browserRequestsPattern = /^\/apisec\/api\/v1\/projects\/[^\/]+\/browser-requests\/[^\/]+/i;
+      if (browserRequestsPattern.test(requestPath)) {
+        console.log('Ignoring browser-requests endpoint:', requestPath);
+        return true;
+      }
+      
+      // Also check for any path containing /browser-requests/ (case insensitive)
+      // This catches variations like /browser-requests/ or /Browser-Requests/
+      if (requestPath.match(/\/browser-requests\//i)) {
+        console.log('Ignoring browser-requests endpoint (generic):', requestPath);
+        return true;
+      }
+    } catch (e) {
+      // URL parsing error, check simple string match as fallback
+      if (details.url.match(/\/browser-requests\//i)) {
+        return true;
+      }
+    }
+  }
+  
   // Ignore requests to our own webhook URL (prevent recursive loops)
   if (webhookUrl && details.url) {
     // Normalize URLs for comparison (remove trailing slashes, etc.)
@@ -282,6 +311,7 @@ function shouldIgnoreRequest(details) {
   // Ignore requests originating from the extension itself
   // tabId -1 typically indicates extension-originated requests
   if (details.tabId === -1) {
+    console.log('Ignoring extension-originated request (tabId -1):', details.url);
     return true;
   }
   
@@ -293,6 +323,7 @@ function shouldIgnoreRequest(details) {
       if (initiatorUrl.protocol === 'chrome-extension:' || 
           initiatorUrl.protocol === 'moz-extension:' ||
           initiatorUrl.hostname === chrome.runtime.id) {
+        console.log('Ignoring extension-originated request (initiator check):', details.url);
         return true;
       }
     } catch (e) {
