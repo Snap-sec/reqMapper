@@ -536,9 +536,20 @@ function convertToPostmanFormat(request) {
       }))
     };
   } else if (request.requestBody && request.requestBody.raw) {
+    const decoder = new TextDecoder('utf-8');
     body = {
       mode: 'raw',
-      raw: request.requestBody.raw.map(raw => raw.bytes).join('')
+      raw: request.requestBody.raw.map(raw => {
+        if (raw.bytes) {
+          try {
+            return decoder.decode(raw.bytes);
+          } catch (e) {
+            console.error('Error decoding request body bytes:', e);
+            return '';
+          }
+        }
+        return '';
+      }).join('')
     };
   }
   
