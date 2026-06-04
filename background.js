@@ -107,12 +107,13 @@ function updateMonitoringState() {
       chrome.webRequest.onBeforeSendHeaders.addListener(
         handleRequestHeaders,
         {urls: ["<all_urls>"]},
-        ["requestHeaders"]
+        ["requestHeaders", "extraHeaders"]
       );
       
       chrome.webRequest.onCompleted.addListener(
         handleResponse,
-        {urls: ["<all_urls>"]}
+        {urls: ["<all_urls>"]},
+        ["responseHeaders", "extraHeaders"]
       );
       
       listenersRegistered = true;
